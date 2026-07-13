@@ -13,7 +13,7 @@
     <name>BondTradeX Backend</name>
 
     <modules>
-        <!-- We will add services here later -->
+        <module>auth-service</module>
     </modules>
 
     <properties>
