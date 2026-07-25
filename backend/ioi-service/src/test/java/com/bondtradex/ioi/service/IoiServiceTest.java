@@ -35,7 +35,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
+import com.bondtradex.ioi.kafka.event.IoiCreatedEvent;
+import com.bondtradex.ioi.kafka.producer.IoiEventProducer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -79,6 +80,8 @@ class IoiServiceTest {
 
     @InjectMocks
     private IoiService ioiService;
+    @Mock
+    private IoiEventProducer ioiEventProducer;
 
     /*
      * ------------------------------------------------------
@@ -112,6 +115,9 @@ class IoiServiceTest {
                 ArgumentCaptor.forClass(Ioi.class);
 
         verify(ioiRepository).saveAndFlush(captor.capture());
+
+        verify(ioiEventProducer)
+                .publishIoiCreated(any(IoiCreatedEvent.class));
 
         Ioi savedIoi = captor.getValue();
 
@@ -177,6 +183,8 @@ class IoiServiceTest {
         assertEquals("US1234567890", response.isin());
         assertEquals("AB1234567", response.cusip());
         assertEquals("CAD", response.currency());
+        verify(ioiEventProducer)
+                .publishIoiCreated(any(IoiCreatedEvent.class));
     }
 
     @Test
@@ -214,6 +222,8 @@ class IoiServiceTest {
 
         assertEquals(null, response.isin());
         assertEquals(null, response.cusip());
+        verify(ioiEventProducer)
+                .publishIoiCreated(any(IoiCreatedEvent.class));
     }
 
     /*

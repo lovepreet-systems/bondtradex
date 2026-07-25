@@ -6,6 +6,7 @@ import com.bondtradex.ioi.dto.PagedResponse;
 import com.bondtradex.ioi.entity.Ioi;
 import com.bondtradex.ioi.entity.IoiStatus;
 import com.bondtradex.ioi.exception.ResourceNotFoundException;
+import com.bondtradex.ioi.kafka.event.IoiCreatedEvent;
 import com.bondtradex.ioi.repository.IoiRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +29,7 @@ import com.bondtradex.ioi.dto.ApproveIoiRequest;
 import com.bondtradex.ioi.dto.RejectIoiRequest;
 import com.bondtradex.ioi.dto.CancelIoiRequest;
 import com.bondtradex.ioi.dto.CreateOfferingRequest;
+import com.bondtradex.ioi.kafka.producer.IoiEventProducer;
 @Service
 public class IoiService {
 
@@ -35,11 +37,15 @@ public class IoiService {
             DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final IoiRepository ioiRepository;
+    private final IoiEventProducer ioiEventProducer;
 
-    public IoiService(IoiRepository ioiRepository) {
+    public IoiService(
+            IoiRepository ioiRepository,
+            IoiEventProducer ioiEventProducer
+    ) {
         this.ioiRepository = ioiRepository;
+        this.ioiEventProducer = ioiEventProducer;
     }
-
     @Transactional
     public IoiResponse create(
             CreateIoiRequest request,
@@ -68,6 +74,17 @@ public class IoiService {
         );
 
         Ioi savedIoi = ioiRepository.saveAndFlush(ioi);
+
+        IoiCreatedEvent event = new IoiCreatedEvent(
+                UUID.randomUUID(),
+                savedIoi.getId(),
+                savedIoi.getIsin(),
+                savedIoi.getStatus().name(),
+                savedIoi.getClientId().toString(),
+                now
+        );
+
+        ioiEventProducer.publishIoiCreated(event);
 
         return toResponse(savedIoi);
     }

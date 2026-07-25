@@ -1,20 +1,23 @@
 package com.bondtradex.ioi;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-@SpringBootTest
-class AuthServiceApplicationTests {
+import static org.assertj.core.api.Assertions.assertThat;
 
-	@Autowired
-	private PasswordEncoder passwordEncoder;
+class AuthServiceApplicationTests {
 
 	@Test
 	void generatePassword() {
-		System.out.println(passwordEncoder.encode("admin123"));
+		PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+		String encodedPassword = passwordEncoder.encode("admin123");
+
+		System.out.println(encodedPassword);
+
+		assertThat(encodedPassword).isNotBlank();
+		assertThat(passwordEncoder.matches("admin123", encodedPassword))
+				.isTrue();
 	}
-
-
 }
