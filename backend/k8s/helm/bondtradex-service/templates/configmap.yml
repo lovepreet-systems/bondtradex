@@ -1,0 +1,26 @@
+{{- if .Values.config.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.config.sharedConfigName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bondtradex-service.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config.shared }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.config.serviceConfigName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bondtradex-service.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config.service }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}

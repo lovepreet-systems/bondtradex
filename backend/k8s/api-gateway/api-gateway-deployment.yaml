@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: api-gateway
+  namespace: bondtradex
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: api-gateway
+
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+
+    spec:
+      serviceAccountName: api-gateway-service-account
+
+      containers:
+        - name: api-gateway
+
+          image: infrastructure-api-gateway:latest
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8080
+
+          envFrom:
+            - configMapRef:
+                name: shared-config
+
+            - configMapRef:
+                name: api-gateway-config
+
+            - secretRef:
+                name: application-secret
+
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+
+            limits:
+              cpu: "1"
+              memory: 1024Mi

@@ -1,0 +1,135 @@
+replicaCount: 1
+
+image:
+  repository: infrastructure-auth-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: auth-service
+
+fullnameOverride: auth-service
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: auth-service
+
+podAnnotations: {}
+
+podLabels:
+  app: auth-service
+  component: authentication
+
+service:
+  type: ClusterIP
+  port: 8081
+  targetPort: 8081
+
+deployment:
+  containerPort: 8081
+
+config:
+  enabled: true
+
+  sharedConfigName: shared-config
+  serviceConfigName: auth-config
+
+  shared:
+    SPRING_PROFILES_ACTIVE: kubernetes
+
+    MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: >-
+      health,info,prometheus,metrics
+
+    MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+
+    MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+
+    MANAGEMENT_HEALTH_LIVENESSSTATE_ENABLED: "true"
+
+    MANAGEMENT_HEALTH_READINESSSTATE_ENABLED: "true"
+
+    MANAGEMENT_PROMETHEUS_METRICS_EXPORT_ENABLED: "true"
+
+    MANAGEMENT_TRACING_ENABLED: "true"
+
+    MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+
+  service:
+    SERVER_PORT: "8081"
+
+    SPRING_APPLICATION_NAME: auth-service
+
+    SPRING_DATASOURCE_URL: >-
+      jdbc:postgresql://postgres:5432/authdb
+
+    SPRING_DATASOURCE_USERNAME: auth_user
+
+    SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+
+    SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+    SPRING_JPA_OPEN_IN_VIEW: "false"
+
+    SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+
+    SPRING_FLYWAY_ENABLED: "true"
+
+    SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+
+    LOGGING_LEVEL_ROOT: INFO
+
+    LOGGING_LEVEL_COM_BONDTRADEX: INFO
+
+secret:
+  enabled: true
+
+  name: application-secret
+
+  data:
+    SPRING_DATASOURCE_PASSWORD: change-me
+
+env:
+  - name: JAVA_TOOL_OPTIONS
+    value: >-
+      -XX:MaxRAMPercentage=75.0
+      -XX:InitialRAMPercentage=25.0
+      -XX:+UseG1GC
+
+envFrom:
+  enabled: true
+
+probes:
+  enabled: true
+
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 60
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

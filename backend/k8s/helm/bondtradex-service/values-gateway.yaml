@@ -1,0 +1,15 @@
+fullnameOverride: api-gateway
+
+replicaCount: 1
+
+image:
+  repository: infrastructure-api-gateway
+  tag: latest
+  pullPolicy: Never
+
+service:
+  type: ClusterIP
+  port: 8080
+
+container:
+  port: 8080

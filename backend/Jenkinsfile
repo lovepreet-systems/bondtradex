@@ -1,0 +1,138 @@
+pipeline {
+
+    agent any
+
+    tools {
+        jdk 'jdk21'
+        maven 'maven3'
+    }
+
+    environment {
+
+        SERVICE_NAME = 'ioi-service'
+
+        SERVICE_DIRECTORY = 'ioi-service'
+
+        DOCKER_IMAGE = 'bondtradex/ioi-service'
+
+        IMAGE_TAG = "${BUILD_NUMBER}"
+
+        HELM_DIRECTORY = 'k8s/helm/bondtradex-service'
+
+        VALUES_FILE = 'k8s/helm/bondtradex-service/values-ioi.yaml'
+
+        NAMESPACE = 'bondtradex'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Compile') {
+            steps {
+                dir("${SERVICE_DIRECTORY}") {
+                    bat 'mvn clean compile'
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                dir("${SERVICE_DIRECTORY}") {
+                    bat 'mvn verify'
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                dir("${SERVICE_DIRECTORY}") {
+                    bat 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+
+                dir("${SERVICE_DIRECTORY}") {
+
+                    bat """
+                    docker build ^
+                    -t %DOCKER_IMAGE%:%IMAGE_TAG% ^
+                    .
+                    """
+                }
+            }
+        }
+
+        stage('Helm Lint') {
+            steps {
+
+                bat """
+                helm lint %HELM_DIRECTORY% ^
+                -f %VALUES_FILE%
+                """
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+
+                bat """
+                helm upgrade --install %SERVICE_NAME% ^
+                %HELM_DIRECTORY% ^
+                -f %VALUES_FILE% ^
+                -n %NAMESPACE% ^
+                --set image.repository=%DOCKER_IMAGE% ^
+                --set image.tag=%IMAGE_TAG% ^
+                --wait ^
+                --timeout 10m
+                """
+            }
+        }
+
+        stage('Verify Deployment') {
+
+            steps {
+
+                bat """
+                kubectl rollout status deployment/%SERVICE_NAME% ^
+                -n %NAMESPACE% ^
+                --timeout=300s
+                """
+            }
+        }
+    }
+
+    post {
+
+        success {
+
+            echo "Deployment completed successfully."
+
+            bat """
+            kubectl get pods -n %NAMESPACE%
+            """
+        }
+
+        failure {
+
+            echo "Deployment failed."
+
+            bat """
+            kubectl get pods -n %NAMESPACE%
+            """
+
+            bat """
+            kubectl logs deployment/%SERVICE_NAME% ^
+            -n %NAMESPACE% ^
+            --tail=200
+            """
+        }
+    }
+}

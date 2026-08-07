@@ -1,0 +1,144 @@
+fullnameOverride: ioi-service
+
+replicaCount: 1
+
+image:
+  repository: infrastructure-ioi-service
+  tag: latest
+  pullPolicy: Never
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ioi-service
+
+podAnnotations: {}
+
+podLabels:
+  app: ioi-service
+  component: indication-of-interest
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8082
+  targetPort: 8082
+
+deployment:
+  containerPort: 8082
+
+config:
+  enabled: true
+
+  sharedConfigName: shared-config
+  serviceConfigName: ioi-config
+
+  shared:
+    MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
+    MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+    MANAGEMENT_HEALTH_LIVENESSSTATE_ENABLED: "true"
+    MANAGEMENT_HEALTH_READINESSSTATE_ENABLED: "true"
+    MANAGEMENT_TRACING_ENABLED: "false"
+
+  service:
+    SERVER_PORT: "8082"
+
+    DB_URL: jdbc:postgresql://ioi-postgres:5432/ioi_db
+    DB_USERNAME: postgres
+
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    REDIS_CONNECT_TIMEOUT: 2s
+    REDIS_TIMEOUT: 2s
+    REDIS_CACHE_TTL: 10m
+
+    KAFKA_BOOTSTRAP_SERVERS: "kafka-0.kafka-headless.bondtradex.svc.cluster.local:9092,kafka-1.kafka-headless.bondtradex.svc.cluster.local:9092,kafka-2.kafka-headless.bondtradex.svc.cluster.local:9092"
+    KAFKA_CONSUMER_GROUP: ioi-service-group
+    KAFKA_PRODUCER_RETRIES: "10"
+
+    IOI_EVENTS_TOPIC: ioi-events
+    IOI_EVENTS_DLT_TOPIC: ioi-events-dlt
+    IOI_EVENTS_REPLAY_TOPIC: ioi-events-replay
+
+    AUTH_ISSUER: http://auth-service:8081
+    AUTH_JWK_SET_URI: http://auth-service:8081/oauth2/jwks
+
+    KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS: "4"
+    KAFKA_CONSUMER_RETRY_INITIAL_INTERVAL: 1s
+    KAFKA_CONSUMER_RETRY_MULTIPLIER: "2.0"
+    KAFKA_CONSUMER_RETRY_MAX_INTERVAL: 10s
+
+    OUTBOX_BATCH_SIZE: "100"
+    OUTBOX_FIXED_DELAY_MS: "1000"
+    OUTBOX_MAX_RETRIES: "5"
+    OUTBOX_RETRY_DELAY_SECONDS: "30"
+    OUTBOX_RECOVERY_DELAY_MS: "60000"
+    OUTBOX_PROCESSING_TIMEOUT_SECONDS: "120"
+
+secret:
+  enabled: true
+  name: ioi-application-secret
+
+  data:
+    DB_PASSWORD: postgres
+
+envFrom:
+  enabled: true
+
+env:
+  - name: JAVA_TOOL_OPTIONS
+    value: >-
+      -XX:MaxRAMPercentage=75.0
+      -XX:InitialRAMPercentage=25.0
+      -XX:+UseG1GC
+
+probes:
+  enabled: true
+
+  startup:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 0
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -3,6 +3,8 @@ package com.bondtradex.ioi.service;
 import com.bondtradex.ioi.dto.CreateIoiRequest;
 import com.bondtradex.ioi.dto.IoiResponse;
 import com.bondtradex.ioi.dto.PagedResponse;
+import com.bondtradex.ioi.outbox.event.EventEnvelope;
+import com.bondtradex.ioi.outbox.service.OutboxService;
 import com.bondtradex.ioi.entity.Ioi;
 import com.bondtradex.ioi.entity.IoiStatus;
 import com.bondtradex.ioi.exception.ResourceNotFoundException;
@@ -29,7 +31,7 @@ import com.bondtradex.ioi.dto.ApproveIoiRequest;
 import com.bondtradex.ioi.dto.RejectIoiRequest;
 import com.bondtradex.ioi.dto.CancelIoiRequest;
 import com.bondtradex.ioi.dto.CreateOfferingRequest;
-import com.bondtradex.ioi.kafka.producer.IoiEventProducer;
+
 @Service
 public class IoiService {
 
@@ -37,14 +39,14 @@ public class IoiService {
             DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final IoiRepository ioiRepository;
-    private final IoiEventProducer ioiEventProducer;
+    private final OutboxService outboxService;
 
     public IoiService(
             IoiRepository ioiRepository,
-            IoiEventProducer ioiEventProducer
+            OutboxService outboxService
     ) {
         this.ioiRepository = ioiRepository;
-        this.ioiEventProducer = ioiEventProducer;
+        this.outboxService = outboxService;
     }
     @Transactional
     public IoiResponse create(
@@ -84,7 +86,22 @@ public class IoiService {
                 now
         );
 
-        ioiEventProducer.publishIoiCreated(event);
+        EventEnvelope<IoiCreatedEvent> envelope =
+                EventEnvelope.create(
+                        "IOI_CREATED",
+                        "IOI",
+                        savedIoi.getId(),
+                        null,
+                        1,
+                        event,
+                        now
+                );
+
+        outboxService.saveEvent(
+                envelope,
+                "ioi-events",
+                savedIoi.getId().toString()
+        );
 
         return toResponse(savedIoi);
     }

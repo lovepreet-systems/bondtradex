@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bondtradex-service.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bondtradex-service.labels" . | nindent 4 }}
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      {{- include "bondtradex-service.selectorLabels" . | nindent 6 }}
+
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.config.enabled }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yml") . | sha256sum }}
+        {{- end }}
+
+        {{- if .Values.secret.enabled }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yml") . | sha256sum }}
+        {{- end }}
+
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      labels:
+        {{- include "bondtradex-service.selectorLabels" . | nindent 8 }}
+
+          {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+          {{- end }}
+
+    spec:
+      serviceAccountName: {{ include "bondtradex-service.serviceAccountName" . }}
+
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      containers:
+        - name: {{ include "bondtradex-service.name" . }}
+
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.deployment.containerPort }}
+              protocol: TCP
+
+          {{- if .Values.envFrom.enabled }}
+          envFrom:
+            {{- if .Values.config.enabled }}
+            - configMapRef:
+                name: {{ .Values.config.sharedConfigName }}
+
+            - configMapRef:
+                name: {{ .Values.config.serviceConfigName }}
+            {{- end }}
+
+            {{- if .Values.secret.enabled }}
+            - secretRef:
+                name: {{ .Values.secret.name }}
+            {{- end }}
+          {{- end }}
+
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- if .Values.probes.enabled }}
+
+          {{- with .Values.probes.startup }}
+          startupProbe:
+            httpGet:
+              path: {{ .path }}
+              port: http
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+
+          {{- with .Values.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{ .path }}
+              port: http
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+
+          {{- with .Values.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{ .path }}
+              port: http
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+
+          {{- end }}
+
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

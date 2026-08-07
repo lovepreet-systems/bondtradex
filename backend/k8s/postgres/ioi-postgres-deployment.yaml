@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ioi-postgres
+  namespace: bondtradex
+
+spec:
+
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ioi-postgres
+
+  template:
+
+    metadata:
+      labels:
+        app: ioi-postgres
+
+    spec:
+
+      containers:
+
+        - name: ioi-postgres
+
+          image: postgres:17
+
+          ports:
+            - containerPort: 5432
+
+          env:
+
+            - name: POSTGRES_DB
+              value: ioi_db
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: application-secret
+                  key: DB_USERNAME
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: application-secret
+                  key: DB_PASSWORD
+
+          volumeMounts:
+
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+
+      volumes:
+
+        - name: postgres-storage
+
+          persistentVolumeClaim:
+            claimName: ioi-postgres-pvc

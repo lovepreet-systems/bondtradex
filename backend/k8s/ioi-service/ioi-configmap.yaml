@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: ioi-config
+  namespace: bondtradex
+
+data:
+  SERVER_PORT: "8082"
+
+  DB_URL: "jdbc:postgresql://ioi-postgres:5432/ioi_db"
+
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+
+  REDIS_CONNECT_TIMEOUT: "2s"
+  REDIS_TIMEOUT: "2s"
+  REDIS_CACHE_TTL: "10m"
+
+  AUTH_ISSUER: "http://auth-service:8081"
+
+  AUTH_JWK_SET_URI: "http://auth-service:8081/oauth2/jwks"
+
+  OTLP_ENDPOINT: "http://tempo:4318/v1/traces"
+
+  KAFKA_BOOTSTRAP_SERVERS: >-
+    kafka-0.kafka-headless.bondtradex.svc.cluster.local:9092,
+    kafka-1.kafka-headless.bondtradex.svc.cluster.local:9092,
+    kafka-2.kafka-headless.bondtradex.svc.cluster.local:9092

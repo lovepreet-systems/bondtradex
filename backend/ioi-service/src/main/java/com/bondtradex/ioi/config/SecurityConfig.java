@@ -1,5 +1,9 @@
 package com.bondtradex.ioi.config;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -10,10 +14,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -29,8 +29,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/actuator/health",
+                                "/actuator/health/**",
                                 "/actuator/info",
-                                "/actuator/prometheus"
+                                "/actuator/prometheus",
+                                "/actuator/metrics",
+                                "/actuator/metrics/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -63,13 +66,15 @@ public class SecurityConfig {
 
         @Override
         public Collection<GrantedAuthority> convert(Jwt jwt) {
-            Collection<GrantedAuthority> authorities = new ArrayList<>();
+            Collection<GrantedAuthority> authorities =
+                    new ArrayList<>();
 
-            List<String> roles = jwt.getClaimAsStringList("roles");
+            List<String> roles =
+                    jwt.getClaimAsStringList("roles");
 
             if (roles != null) {
                 roles.stream()
-                        .map(role -> "ROLE_" + role)
+                        .map(SecurityConfig::normalizeRole)
                         .map(SimpleGrantedAuthority::new)
                         .forEach(authorities::add);
             }
@@ -85,5 +90,13 @@ public class SecurityConfig {
 
             return authorities;
         }
+    }
+
+    private static String normalizeRole(String role) {
+        if (role.startsWith("ROLE_")) {
+            return role;
+        }
+
+        return "ROLE_" + role;
     }
 }

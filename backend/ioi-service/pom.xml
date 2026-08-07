@@ -25,6 +25,7 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<resilience4j.version>2.3.0</resilience4j.version>
 
 		<!-- SonarQube -->
 		<sonar.projectKey>BondTradeX-IOI-Service</sonar.projectKey>
@@ -35,6 +36,22 @@
 		</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.qualitygate.wait>true</sonar.qualitygate.wait>
 	</properties>
+
+	<!--
+        Imports dependency versions for Resilience4j modules.
+        The BOM does not add Resilience4j libraries to the application.
+    -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.github.resilience4j</groupId>
+				<artifactId>resilience4j-bom</artifactId>
+				<version>${resilience4j.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 
@@ -48,11 +65,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka</artifactId>
 		</dependency>
 
 		<!-- Validate JWT access tokens issued by auth-service -->
@@ -102,16 +114,45 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
 
-		<!-- Monitoring -->
+		<!-- Monitoring and Actuator endpoints -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
+		<!-- Prometheus metrics -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+
+		<!-- Micrometer OpenTelemetry bridge -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
+
+		<!-- Export traces through OTLP to Tempo -->
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+		</dependency>
+
+		<!-- Resilience4j Spring Boot 3 integration -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
+		</dependency>
+
+		<!-- Required for annotation-based Resilience4j AOP -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
 		</dependency>
 
 		<!-- Lombok -->
@@ -133,6 +174,7 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 
 	</dependencies>
 
@@ -212,6 +254,7 @@
 					<execution>
 						<id>report</id>
 						<phase>verify</phase>
+
 						<goals>
 							<goal>report</goal>
 						</goals>
@@ -220,6 +263,7 @@
 					<execution>
 						<id>check</id>
 						<phase>verify</phase>
+
 						<goals>
 							<goal>check</goal>
 						</goals>
@@ -236,11 +280,9 @@
 											<minimum>0.20</minimum>
 										</limit>
 									</limits>
-
 								</rule>
 							</rules>
 						</configuration>
-
 					</execution>
 
 				</executions>

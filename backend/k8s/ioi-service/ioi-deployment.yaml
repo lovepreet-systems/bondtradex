@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ioi-service
+  namespace: bondtradex
+
+  labels:
+    app: ioi-service
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ioi-service
+
+  template:
+    metadata:
+      labels:
+        app: ioi-service
+
+    spec:
+      serviceAccountName: ioi-service-account
+
+      containers:
+        - name: ioi-service
+
+          image: infrastructure-ioi-service:latest
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8082
+
+          envFrom:
+            - configMapRef:
+                name: shared-config
+
+            - configMapRef:
+                name: ioi-config
+
+          env:
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: application-secret
+                  key: DB_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: application-secret
+                  key: DB_PASSWORD
+
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 60
+            failureThreshold: 5
+
+            periodSeconds: 20
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+
+            limits:
+              cpu: "1"
+              memory: 1Gi
