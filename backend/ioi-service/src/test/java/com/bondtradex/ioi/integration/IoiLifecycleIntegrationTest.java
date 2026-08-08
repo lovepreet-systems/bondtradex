@@ -19,13 +19,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import com.bondtradex.ioi.kafka.producer.IoiEventProducer;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
-import com.bondtradex.ioi.kafka.event.IoiCreatedEvent;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -74,8 +70,6 @@ class IoiLifecycleIntegrationTest {
      */
     @MockitoBean
     private JwtDecoder jwtDecoder;
-    @MockitoBean
-    private IoiEventProducer ioiEventProducer;
     @BeforeEach
     void setUp() {
         verifyTestDatabase();
@@ -133,8 +127,6 @@ class IoiLifecycleIntegrationTest {
                 )
                 .andExpect(jsonPath("$.data.status").value("DRAFT"))
                 .andExpect(jsonPath("$.data.version").value(0));
-        verify(ioiEventProducer)
-                .publishIoiCreated(any(IoiCreatedEvent.class));
         assertThat(ioiRepository.count()).isEqualTo(1);
 
         Ioi createdIoi = ioiRepository.findAll()

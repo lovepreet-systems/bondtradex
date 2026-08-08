@@ -5,6 +5,7 @@ import com.bondtradex.ioi.dto.CancelIoiRequest;
 import com.bondtradex.ioi.dto.CompleteSalesReviewRequest;
 import com.bondtradex.ioi.dto.CreateIoiRequest;
 import com.bondtradex.ioi.dto.CreateOfferingRequest;
+import static org.mockito.Mockito.mock;
 import com.bondtradex.ioi.dto.IoiResponse;
 import com.bondtradex.ioi.dto.PagedResponse;
 import com.bondtradex.ioi.dto.RejectIoiRequest;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -28,14 +28,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
-
+import com.bondtradex.ioi.outbox.service.OutboxService;
+import org.mockito.Mock;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import com.bondtradex.ioi.kafka.event.IoiCreatedEvent;
 import com.bondtradex.ioi.kafka.producer.IoiEventProducer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,10 +44,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class IoiServiceTest {
@@ -77,6 +77,9 @@ class IoiServiceTest {
 
     @Mock
     private IoiRepository ioiRepository;
+
+    @Mock
+    private OutboxService outboxService;
 
     @InjectMocks
     private IoiService ioiService;
@@ -116,8 +119,8 @@ class IoiServiceTest {
 
         verify(ioiRepository).saveAndFlush(captor.capture());
 
-        verify(ioiEventProducer)
-                .publishIoiCreated(any(IoiCreatedEvent.class));
+        verify(outboxService)
+                .saveEvent(any(), anyString(), anyString());
 
         Ioi savedIoi = captor.getValue();
 
@@ -183,8 +186,8 @@ class IoiServiceTest {
         assertEquals("US1234567890", response.isin());
         assertEquals("AB1234567", response.cusip());
         assertEquals("CAD", response.currency());
-        verify(ioiEventProducer)
-                .publishIoiCreated(any(IoiCreatedEvent.class));
+        verify(outboxService)
+                .saveEvent(any(), anyString(), anyString());
     }
 
     @Test
@@ -222,8 +225,8 @@ class IoiServiceTest {
 
         assertEquals(null, response.isin());
         assertEquals(null, response.cusip());
-        verify(ioiEventProducer)
-                .publishIoiCreated(any(IoiCreatedEvent.class));
+        verify(outboxService)
+                .saveEvent(any(), anyString(), anyString());
     }
 
     /*
