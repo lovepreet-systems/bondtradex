@@ -1,0 +1,17 @@
+server:
+  port: 8090
+
+# Manual Ollama client
+ai:
+  ollama:
+    base-url: http://localhost:11434
+    model: gemma3:1b
+
+# Spring AI
+spring:
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: gemma3:1b

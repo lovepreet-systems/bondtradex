@@ -14,6 +14,7 @@
 
     <modules>
         <module>auth-service</module>
+        <module>ai-learning-service</module>
     </modules>
 
     <properties>
