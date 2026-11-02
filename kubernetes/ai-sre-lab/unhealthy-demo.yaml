@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unhealthy-demo
+  namespace: ai-sre-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: unhealthy-demo
+  template:
+    metadata:
+      labels:
+        app: unhealthy-demo
+    spec:
+      containers:
+        - name: web
+          image: nginx:stable-alpine
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3

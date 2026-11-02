@@ -1,6 +1,7 @@
 server:
   port: 8090
 
+
 # Manual Ollama client
 ai:
   ollama:
@@ -24,6 +25,18 @@ spring:
         dimensions: 768
         distance-type: COSINE_DISTANCE
         index-type: HNSW
+
+    mcp:
+      client:
+        enabled: true
+        name: bondtradex-ai-client
+        type: SYNC
+        request-timeout: 30s
+        streamable-http:
+          connections:
+            diagnostics:
+              url: http://127.0.0.1:8091
+              endpoint: /mcp
 
   datasource:
     url: jdbc:postgresql://localhost:5435/ai_learning

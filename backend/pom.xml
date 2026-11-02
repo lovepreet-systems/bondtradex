@@ -15,6 +15,7 @@
     <modules>
         <module>auth-service</module>
         <module>ai-learning-service</module>
+        <module>diagnostics-mcp-server</module>
     </modules>
 
     <properties>
